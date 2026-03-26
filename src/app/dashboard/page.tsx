@@ -142,7 +142,7 @@ export default function DoctorDashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-primary font-headline">Clinical Dashboard</h1>
-            <p className="text-muted-foreground">Managing {patients.length} active patient records</p>
+            <p className="text-muted-foreground">Managing {patients?.length || 0} active patient records</p>
           </div>
           <div className="flex gap-3">
             <div className="relative">

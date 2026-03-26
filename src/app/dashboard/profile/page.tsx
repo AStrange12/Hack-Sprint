@@ -140,13 +140,13 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="hospitalName">Hospital / Clinic Name</Label>
+                  <Label htmlFor="dept">Department</Label>
                   <Input 
-                    id="hospitalName" 
-                    name="hospitalName"
+                    id="dept" 
+                    name="dept"
                     value={formData.hospitalName} 
                     onChange={handleInputChange} 
-                    placeholder="e.g. St. Mary's General"
+                    placeholder="e.g. OPD"
                   />
                 </div>
                 <div className="space-y-2">
@@ -176,12 +176,12 @@ export default function ProfilePage() {
                     name="contactNumber"
                     value={formData.contactNumber} 
                     onChange={handleInputChange} 
-                    placeholder="+1 (555) 000-0000"
+                    placeholder="+91 000000000"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Clinic Address</Label>
+                <Label htmlFor="address">Address</Label>
                 <Input 
                   id="address" 
                   name="address"
