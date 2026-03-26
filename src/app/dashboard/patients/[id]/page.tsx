@@ -11,14 +11,19 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Thermometer, Droplets, Heart, Wind, Clock, AlertTriangle, CheckCircle2, Wand2, ArrowLeft } from 'lucide-react';
+import { Activity, Thermometer, Droplets, Heart, Wind, Clock, AlertTriangle, CheckCircle2, Wand2, ArrowLeft, Loader2 } from 'lucide-react';
 import { predictPatientDeterioration } from '@/ai/flows/predict-patient-deterioration-flow';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { Label } from '@/components/ui/label';
 
 export default function PatientDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
   const { toast } = useToast();
@@ -31,6 +36,12 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
   const [rr, setRr] = useState('16');
   const [temp, setTemp] = useState('37');
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     loadPatient();
@@ -97,6 +108,14 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
       setIsPredicting(false);
     }
   };
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!patient) return <div className="p-10 text-center">Loading patient data...</div>;
 

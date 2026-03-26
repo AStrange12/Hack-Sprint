@@ -6,7 +6,7 @@ import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, User, Calendar, Activity, ChevronRight, Search as SearchIcon } from 'lucide-react';
+import { Plus, User, Calendar, Activity, ChevronRight, Search as SearchIcon, Loader2 } from 'lucide-react';
 import { getPatients, addPatient } from '@/lib/db-mock';
 import { Patient } from '@/lib/types';
 import Link from 'next/link';
@@ -14,8 +14,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function DoctorDashboard() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
@@ -24,6 +28,12 @@ export default function DoctorDashboard() {
   const [newName, setNewName] = useState('');
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState('Male');
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     loadPatients();
@@ -53,6 +63,14 @@ export default function DoctorDashboard() {
     loadPatients();
   };
 
+  if (isUserLoading || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const filteredPatients = patients.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.id.toLowerCase().includes(searchTerm.toLowerCase())
@@ -65,7 +83,7 @@ export default function DoctorDashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-primary font-headline">Clinical Dashboard</h1>
-            <p className="text-muted-foreground">Manage patients and monitor deterioration risks.</p>
+            <p className="text-muted-foreground">Logged in as {user.email}</p>
           </div>
           <div className="flex gap-3">
             <div className="relative">

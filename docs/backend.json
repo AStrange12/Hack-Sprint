@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -329,6 +330,7 @@
   "auth": {
     "providers": [
       "password",
+      "google.com",
       "anonymous"
     ]
   },
