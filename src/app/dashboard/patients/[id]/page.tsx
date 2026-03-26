@@ -47,8 +47,12 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
   const predictionsQuery = useMemoFirebase(() => query(collection(db, 'patients', id, 'predictions'), orderBy('predictedAt', 'desc')), [db, id]);
 
   const { data: patient, isLoading: isPatientLoading } = useDoc<Patient>(patientDocRef);
-  const { data: vitals = [] } = useCollection<VitalReading>(vitalsQuery);
-  const { data: predictions = [] } = useCollection<PredictionResult>(predictionsQuery);
+  const { data: vitalsData, isLoading: isVitalsLoading } = useCollection<VitalReading>(vitalsQuery);
+  const { data: predictionsData, isLoading: isPredictionsLoading } = useCollection<PredictionResult>(predictionsQuery);
+
+  // Ensure data is always at least an empty array for rendering logic
+  const vitals = vitalsData || [];
+  const predictions = predictionsData || [];
 
   // Vitals Input State
   const [hr, setHr] = useState('80');
@@ -123,7 +127,7 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
         icuTransferRiskScore: result.icuTransferRisk,
         cardiacArrestRiskScore: result.cardiacArrestRisk,
         mortalityRiskScore: result.mortalityRisk,
-        icuTransferRiskLevel: result.riskLevel, // Mocking levels from overall for brevity
+        icuTransferRiskLevel: result.riskLevel, 
         cardiacArrestRiskLevel: result.riskLevel,
         mortalityRiskLevel: result.riskLevel,
         riskLevel: result.riskLevel,
@@ -152,7 +156,7 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
 
   if (!patient) return <div className="p-10 text-center">Patient record not found.</div>;
 
-  const latestPrediction = predictions?.[0];
+  const latestPrediction = (predictions?.length || 0) > 0 ? predictions[0] : null;
   const age = patient.age || calculateAge(patient.dateOfBirth);
 
   return (
@@ -283,9 +287,13 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
                       <CardTitle>Vitals Trend Analysis</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[300px]">
-                      {vitals.length > 0 ? (
+                      {isVitalsLoading ? (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading vitals trends...
+                        </div>
+                      ) : (vitals?.length || 0) > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={[...vitals].reverse()}>
+                          <LineChart data={[...(vitals || [])].reverse()}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="recordedAt" tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
                             <YAxis />
@@ -308,7 +316,9 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {vitals.map((v, i) => (
+                        {isVitalsLoading && <div className="text-center py-4 text-muted-foreground">Loading clinical logs...</div>}
+                        {!isVitalsLoading && (vitals?.length || 0) === 0 && <div className="text-center py-4 text-muted-foreground">No records logged yet.</div>}
+                        {(vitals || []).map((v, i) => (
                           <div key={v.id} className="flex items-center justify-between p-3 rounded-xl border bg-muted/10 hover:bg-muted/20 transition-colors text-xs">
                             <div className="flex items-center gap-3">
                               <Clock size={14} className="text-muted-foreground" />
@@ -333,7 +343,11 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
                     <CardTitle>AI Clinical Rationale</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {latestPrediction ? (
+                    {isPredictionsLoading ? (
+                      <div className="py-20 text-center text-muted-foreground">
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" /> Loading AI insights...
+                      </div>
+                    ) : latestPrediction ? (
                       <>
                         <div className="p-4 rounded-xl bg-accent/5 border border-accent/10 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                           {latestPrediction.explanation}
