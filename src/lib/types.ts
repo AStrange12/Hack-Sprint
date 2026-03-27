@@ -16,18 +16,21 @@ export interface UserProfile {
 
 export interface VitalReading {
   id: string;
-  timestamp: string;
-  hr: number;
-  bpSystolic: number;
-  bpDiastolic: number;
+  recordedAt: string;
+  heartRate: number;
+  bloodPressureSystolic: number;
+  bloodPressureDiastolic: number;
   spo2: number;
-  rr: number;
-  temp: number;
+  respiratoryRate: number;
+  temperature: number;
+  patientId: string;
+  addedByUserId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PredictionResult {
   id: string;
-  timestamp: string;
   icuTransferRiskScore: number;
   cardiacArrestRiskScore: number;
   mortalityRiskScore: number;
@@ -39,6 +42,7 @@ export interface PredictionResult {
   predictedAt: string;
   createdAt: string;
   updatedAt: string;
+  patientId: string;
 }
 
 export interface Patient {
@@ -54,8 +58,6 @@ export interface Patient {
   preExistingConditions: string;
   smokingStatus: string;
   clinicalNotes: string;
-  vitals: VitalReading[];
-  predictions: PredictionResult[];
   addedByUserId: string;
   createdAt: string;
   updatedAt: string;

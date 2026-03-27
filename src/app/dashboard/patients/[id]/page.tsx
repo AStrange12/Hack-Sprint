@@ -55,14 +55,27 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
   const vitals = vitalsData || [];
   const predictions = predictionsData || [];
 
-  // Vitals Input State
-  const [hr, setHr] = useState('80');
-  const [sbp, setSbp] = useState('120');
-  const [dbp, setDbp] = useState('80');
-  const [spo2, setSpo2] = useState('98');
-  const [rr, setRr] = useState('16');
-  const [temp, setTemp] = useState('37');
+  // Vitals Input State - Initialized to empty to be populated by latest record
+  const [hr, setHr] = useState('');
+  const [sbp, setSbp] = useState('');
+  const [dbp, setDbp] = useState('');
+  const [spo2, setSpo2] = useState('');
+  const [rr, setRr] = useState('');
+  const [temp, setTemp] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Effect to populate form with latest patient data
+  useEffect(() => {
+    if (vitals.length > 0) {
+      const latest = vitals[0];
+      setHr(latest.heartRate?.toString() || '');
+      setSbp(latest.bloodPressureSystolic?.toString() || '');
+      setDbp(latest.bloodPressureDiastolic?.toString() || '');
+      setSpo2(latest.spo2?.toString() || '');
+      setRr(latest.respiratoryRate?.toString() || '');
+      setTemp(latest.temperature?.toString() || '');
+    }
+  }, [vitalsData]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -82,12 +95,12 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
       await addDoc(collection(db, 'patients', id, 'vitalsRecords'), {
         patientId: id,
         recordedAt: new Date().toISOString(),
-        heartRate: parseInt(hr),
-        bloodPressureSystolic: parseInt(sbp),
-        bloodPressureDiastolic: parseInt(dbp),
-        spo2: parseInt(spo2),
-        respiratoryRate: parseInt(rr),
-        temperature: parseFloat(temp),
+        heartRate: parseInt(hr) || 0,
+        bloodPressureSystolic: parseInt(sbp) || 0,
+        bloodPressureDiastolic: parseInt(dbp) || 0,
+        spo2: parseInt(spo2) || 0,
+        respiratoryRate: parseInt(rr) || 0,
+        temperature: parseFloat(temp) || 0,
         addedByUserId: user.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -112,12 +125,12 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
       const input = {
         patientId: patient.id,
         vitals: {
-          heartRate: parseInt(hr),
-          systolicBp: parseInt(sbp),
-          diastolicBp: parseInt(dbp),
-          spo2: parseInt(spo2),
-          respiratoryRate: parseInt(rr),
-          temperature: parseFloat(temp),
+          heartRate: parseInt(hr) || 0,
+          systolicBp: parseInt(sbp) || 0,
+          diastolicBp: parseInt(dbp) || 0,
+          spo2: parseInt(spo2) || 0,
+          respiratoryRate: parseInt(rr) || 0,
+          temperature: parseFloat(temp) || 0,
         },
         clinicalNotes: notes
       };
@@ -280,8 +293,8 @@ export default function PatientDetail({ params }: { params: Promise<{ id: string
                   <CardContent className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                       <VitalInput label="Pulse (bpm)" icon={<Heart size={16} />} value={hr} onChange={setHr} />
-                      <VitalInput label="BP (mmHg)" icon={<Droplets size={16} />} value={sbp} onChange={setSbp} />
-                      <VitalInput label="BP (120/80)" icon={<Droplets size={16} />} value={dbp} onChange={setDbp} />
+                      <VitalInput label="BP (Systolic)" icon={<Droplets size={16} />} value={sbp} onChange={setSbp} />
+                      <VitalInput label="BP (Diastolic)" icon={<Droplets size={16} />} value={dbp} onChange={setDbp} />
                       <VitalInput label="SpO2 (%)" icon={<Wind size={16} />} value={spo2} onChange={setSpo2} />
                       <VitalInput label="RR (breaths/min)" icon={<Activity size={16} />} value={rr} onChange={setRr} />
                       <VitalInput label="Temp (°C)" icon={<Thermometer size={16} />} value={temp} onChange={setTemp} />
