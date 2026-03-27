@@ -4,7 +4,7 @@
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Activity, ShieldAlert, Heart, FileText, Stethoscope, ShieldCheck, Loader2 } from 'lucide-react';
+import { Activity, ShieldAlert, Heart, FileText, Stethoscope, ShieldCheck, Loader2, UserCog } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { UserProfile } from '@/lib/types';
@@ -39,33 +39,56 @@ export default function LandingPage() {
               Empower clinical teams with multimodal predictions for ICU transfer, cardiac arrest, and mortality using real-time vitals and clinical notes.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {isUserLoading || isProfileLoading ? (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {isUserLoading || (user && isProfileLoading) ? (
                 <Button disabled size="lg" className="h-14 px-8 rounded-xl">
                   <Loader2 className="animate-spin mr-2" />
                   Verifying Access...
                 </Button>
               ) : (
                 <>
-                  {isAdmin ? (
-                    <Link href="/admin/dashboard">
-                      <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl bg-accent hover:bg-accent/90">
-                        <ShieldCheck className="mr-2" />
-                        Go to Admin Dashboard
-                      </Button>
-                    </Link>
+                  {!user ? (
+                    <>
+                      <Link href="/dashboard">
+                        <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-lg">
+                          Go to Doctor Dashboard
+                        </Button>
+                      </Link>
+                      <Link href="/admin/dashboard">
+                        <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl bg-accent hover:bg-accent/90 shadow-lg text-white">
+                          <UserCog className="mr-2" size={20} />
+                          Admin Portal
+                        </Button>
+                      </Link>
+                      <Link href="/public">
+                        <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-sm bg-white">
+                          Public Patient Portal
+                        </Button>
+                      </Link>
+                    </>
                   ) : (
-                    <Link href="/dashboard">
-                      <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl">
-                        Go to Doctor Dashboard
-                      </Button>
-                    </Link>
+                    <>
+                      {isAdmin ? (
+                        <Link href="/admin/dashboard">
+                          <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl bg-accent hover:bg-accent/90 shadow-lg text-white">
+                            <ShieldCheck className="mr-2" size={20} />
+                            Go to Admin Dashboard
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link href="/dashboard">
+                          <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-lg">
+                            Go to Doctor Dashboard
+                          </Button>
+                        </Link>
+                      )}
+                      <Link href="/public">
+                        <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-sm bg-white">
+                          Public Patient Portal
+                        </Button>
+                      </Link>
+                    </>
                   )}
-                  <Link href="/public">
-                    <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl">
-                      Public Patient Portal
-                    </Button>
-                  </Link>
                 </>
               )}
             </div>
