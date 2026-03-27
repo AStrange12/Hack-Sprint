@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from 'next/link';
-import { Stethoscope, User, LayoutDashboard, Search, LogOut, UserCircle, ShieldCheck } from 'lucide-react';
+import { Stethoscope, User, LayoutDashboard, Search, LogOut, UserCircle, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth, useFirestore, useDoc } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -20,12 +21,14 @@ export function Navigation() {
     return user ? doc(db, 'users', user.uid) : null;
   }, [db, user]);
 
-  const { data: profile } = useDoc<UserProfile>(userDocRef);
+  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/');
   };
+
+  const isAdmin = profile?.role === 'Admin';
 
   return (
     <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
@@ -42,13 +45,18 @@ export function Navigation() {
             Patient Search
           </Link>
           
-          {!isUserLoading && (
+          {isUserLoading || (user && isProfileLoading) ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Verifying...
+            </div>
+          ) : (
             <>
               {user ? (
                 <div className="flex items-center gap-4">
-                  {profile?.role === 'Admin' && (
+                  {isAdmin && (
                     <Link href="/admin/dashboard">
-                      <Button variant="ghost" className="flex items-center gap-2 text-accent">
+                      <Button variant="ghost" className="flex items-center gap-2 text-accent hover:text-accent hover:bg-accent/5">
                         <ShieldCheck size={16} />
                         Admin Panel
                       </Button>

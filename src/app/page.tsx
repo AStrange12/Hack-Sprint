@@ -49,20 +49,15 @@ export default function LandingPage() {
                 <>
                   {!user ? (
                     <>
-                      <Link href="/dashboard">
+                      <Link href="/login">
                         <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-lg">
-                          Go to Doctor Dashboard
+                          Login as Doctor
                         </Button>
                       </Link>
-                      <Link href="/admin/dashboard">
+                      <Link href="/login">
                         <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl bg-accent hover:bg-accent/90 shadow-lg text-white">
                           <UserCog className="mr-2" size={20} />
                           Admin Portal
-                        </Button>
-                      </Link>
-                      <Link href="/public">
-                        <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-sm bg-white">
-                          Public Patient Portal
                         </Button>
                       </Link>
                     </>
