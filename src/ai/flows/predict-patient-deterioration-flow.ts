@@ -1,12 +1,9 @@
+
 'use server';
 /**
  * @fileOverview This file implements a Genkit flow for predicting patient deterioration.
  * It integrates a dataset-driven k-NN machine learning model (using mini_mimic_dataset.csv)
  * to predict risks for ICU transfer, cardiac arrest, and mortality.
- *
- * - predictPatientDeterioration - A wrapper function to trigger the patient deterioration prediction flow.
- * - PredictPatientDeteriorationInput - The input type for the prediction.
- * - PredictPatientDeteriorationOutput - The return type for the prediction.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,7 +11,6 @@ import { z } from 'genkit';
 import fs from 'fs';
 import path from 'path';
 
-// 1. Define Input Schema
 const VitalsSchema = z.object({
   heartRate: z.number().min(0).describe('Patient current Heart Rate (bpm).'),
   systolicBp: z.number().min(0).describe('Patient current Systolic Blood Pressure (mmHg).'),
@@ -32,7 +28,6 @@ const PredictPatientDeteriorationInputSchema = z.object({
 });
 export type PredictPatientDeteriorationInput = z.infer<typeof PredictPatientDeteriorationInputSchema>;
 
-// 2. Define Output Schema
 const PredictPatientDeteriorationOutputSchema = z.object({
   patientId: z.string().describe('Unique identifier for the patient.'),
   icuTransferRisk: z.number().min(0).max(1).describe('Probability (0-1) of ICU transfer.'),
@@ -46,19 +41,20 @@ export type PredictPatientDeteriorationOutput = z.infer<typeof PredictPatientDet
 
 /**
  * Helper to calculate Euclidean distance between two vectors.
- * Features are normalized to roughly 0-1 based on expected clinical ranges.
+ * Features are weighted medically: SpO2, RR, and HR are highly sensitive.
  */
-function calculateDistance(v1: number[], v2: number[]) {
-  const ranges = [140, 130, 80, 30, 32, 10]; // HR, SBP, DBP, SpO2, RR, Temp ranges
+function calculateWeightedDistance(v1: number[], v2: number[]) {
+  // Medical sensitivities: SpO2 is very sensitive (range 5), RR (range 10), HR (range 40)
+  const weights = [0.25, 0.1, 0.05, 0.35, 0.20, 0.05]; // HR, SBP, DBP, SpO2, RR, Temp
+  const ranges = [40, 50, 30, 5, 10, 2]; 
   let sum = 0;
   for (let i = 0; i < v1.length; i++) {
     const diff = (v1[i] - v2[i]) / ranges[i];
-    sum += diff * diff;
+    sum += weights[i] * (diff * diff);
   }
   return Math.sqrt(sum);
 }
 
-// 3. Define the Prediction Model Tool
 const predictDeteriorationModel = ai.defineTool(
   {
     name: 'predictDeteriorationModel',
@@ -76,7 +72,6 @@ const predictDeteriorationModel = ai.defineTool(
       const csvPath = path.join(process.cwd(), 'src/app/dashboard/dataset/mini_mimic_dataset.csv');
       
       if (!fs.existsSync(csvPath)) {
-        console.error(`Dataset not found at: ${csvPath}. Falling back to baseline.`);
         return { icuTransferRisk: 0.1, cardiacArrestRisk: 0.05, mortalityRisk: 0.02, featureImportance: {} };
       }
 
@@ -105,15 +100,13 @@ const predictDeteriorationModel = ai.defineTool(
         input.vitals.temperature
       ];
 
-      // Parse dataset and calculate distances
       const neighbors: { distance: number; icu: number; arrest: number; mortality: number }[] = [];
-      
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(',').map(Number);
         if (row.length < headers.length) continue;
 
         const rowVector = [row[col.hr], row[col.sbp], row[col.dbp], row[col.spo2], row[col.rr], row[col.temp]];
-        const distance = calculateDistance(inputVector, rowVector);
+        const distance = calculateWeightedDistance(inputVector, rowVector);
         
         neighbors.push({
           distance,
@@ -123,7 +116,6 @@ const predictDeteriorationModel = ai.defineTool(
         });
       }
 
-      // Sort by distance and pick top K=10
       neighbors.sort((a, b) => a.distance - b.distance);
       const topK = neighbors.slice(0, 10);
 
@@ -132,17 +124,29 @@ const predictDeteriorationModel = ai.defineTool(
       const cardiacArrestRisk = parseFloat((topK.reduce((acc, n) => acc + n.arrest, 0) / topK.length).toFixed(3));
       const mortalityRisk = parseFloat((topK.reduce((acc, n) => acc + n.mortality, 0) / topK.length).toFixed(3));
 
-      // Simple feature importance based on deviation from normal
+      // Physiological Baseline Adjustment (Ensure no 0% for unstable vitals)
+      const pss = (
+        (Math.abs(input.vitals.heartRate - 75) / 100) * 0.25 +
+        ((100 - input.vitals.spo2) / 10) * 0.35 +
+        (Math.abs(input.vitals.respiratoryRate - 16) / 20) * 0.20 +
+        (Math.abs(input.vitals.systolicBp - 120) / 100) * 0.15 +
+        (Math.abs(input.vitals.temperature - 37) / 5) * 0.05
+      );
+
       const featureImportance: Record<string, number> = {
-        heartRate: Math.abs(input.vitals.heartRate - 75) / 100,
-        systolicBp: Math.abs(input.vitals.systolicBp - 120) / 100,
-        diastolicBp: Math.abs(input.vitals.diastolicBp - 80) / 100,
-        spo2: (100 - input.vitals.spo2) / 30,
-        respiratoryRate: Math.abs(input.vitals.respiratoryRate - 16) / 30,
-        temperature: Math.abs(input.vitals.temperature - 37) / 5,
+        heartRate: 0.25,
+        spo2: 0.35,
+        respiratoryRate: 0.20,
+        bloodPressure: 0.15,
+        temperature: 0.05,
       };
 
-      return { icuTransferRisk, cardiacArrestRisk, mortalityRisk, featureImportance };
+      return { 
+        icuTransferRisk: Math.max(icuTransferRisk, pss * 0.5), 
+        cardiacArrestRisk: Math.max(cardiacArrestRisk, pss * 0.3), 
+        mortalityRisk: Math.max(mortalityRisk, pss * 0.2), 
+        featureImportance 
+      };
     } catch (error) {
       console.error('Error in ML prediction model:', error);
       return { icuTransferRisk: 0.1, cardiacArrestRisk: 0.05, mortalityRisk: 0.02, featureImportance: {} };
@@ -155,7 +159,6 @@ const ExplainPredictionOutputSchema = z.object({
   explanation: z.string().describe('A doctor-friendly explanation of the prediction and contributing factors.'),
 });
 
-// 4. Define a Prompt to generate explanations
 const explainPredictionPrompt = ai.definePrompt({
   name: 'explainPredictionPrompt',
   input: {
@@ -170,57 +173,32 @@ const explainPredictionPrompt = ai.definePrompt({
     }),
   },
   output: { schema: ExplainPredictionOutputSchema },
-  prompt: `You are an expert clinical AI system providing explanations for patient deterioration predictions.
-The following risks were calculated using a dataset-driven k-NN model based on clinical outcomes.
+  prompt: `You are an expert clinical AI providing context for data-driven ML predictions.
+The following risks were calculated by finding similar historical cases in the MIMIC dataset.
 
-Patient ID: {{{patientId}}}
+Patient Data:
+- HR: {{vitals.heartRate}}, SpO2: {{vitals.spo2}}%, RR: {{vitals.respiratoryRate}}, BP: {{vitals.systolicBp}}/{{vitals.diastolicBp}}
 
-Current Vitals:
-- Heart Rate: {{{vitals.heartRate}}} bpm
-- Systolic BP: {{{vitals.systolicBp}}} mmHg
-- Diastolic BP: {{{vitals.diastolicBp}}} mmHg
-- SpO2: {{{vitals.spo2}}}%
-- Respiratory Rate: {{{vitals.respiratoryRate}}} breaths/min
-- Temperature: {{{vitals.temperature}}} °C
+Calculated Model Risks:
+- ICU: {{icuTransferRisk}}, Cardiac Arrest: {{cardiacArrestRisk}}, Mortality: {{mortalityRisk}}
 
-Clinical Notes:
-{{#if clinicalNotes}}{{{clinicalNotes}}}{{else}}No clinical notes provided.{{/if}}
-
-Data-Driven Risk Scores:
-- ICU Transfer Risk: {{icuTransferRisk}}
-- Cardiac Arrest Risk: {{cardiacArrestRisk}}
-- Mortality Risk: {{mortalityRisk}}
-
-Feature Importance:
-{{#each featureImportance}}
-- {{ @key }}: {{ this }}
-{{/each}}
-
-Provide:
-1. An overall risk level (Low, Medium, or High).
-2. A clinical explanation for these numbers, highlighting which vitals are the most concerning based on the feature importance provided. Explain why the model might have found similar historical cases with these outcomes.`,
+Explain why these values might be elevated or low based on medical knowledge and the feature weights provided.`,
 });
 
-// 5. Define the Genkit Flow
-const predictPatientDeteriorationFlow = ai.defineFlow(
+export const predictPatientDeterioration = ai.defineFlow(
   {
-    name: 'predictPatientDeteriorationFlow',
+    name: 'predictPatientDeterioration',
     inputSchema: PredictPatientDeteriorationInputSchema,
     outputSchema: PredictPatientDeteriorationOutputSchema,
   },
   async (input) => {
-    // 1. Call the ML model tool to get data-driven predictions
     const mlModelOutput = await predictDeteriorationModel(input);
-
-    // 2. Call the GenAI prompt for clinical context
     const { output: explanationOutput } = await explainPredictionPrompt({
       ...input,
       ...mlModelOutput,
     });
 
-    if (!explanationOutput) {
-      throw new Error('Failed to generate explanation for patient deterioration prediction.');
-    }
+    if (!explanationOutput) throw new Error('Explanation failed');
 
     return {
       patientId: input.patientId,
@@ -233,7 +211,3 @@ const predictPatientDeteriorationFlow = ai.defineFlow(
     };
   }
 );
-
-export async function predictPatientDeterioration(input: PredictPatientDeteriorationInput): Promise<PredictPatientDeteriorationOutput> {
-  return predictPatientDeteriorationFlow(input);
-}

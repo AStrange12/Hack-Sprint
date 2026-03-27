@@ -28,12 +28,17 @@ export interface VitalReading {
 export interface PredictionResult {
   id: string;
   timestamp: string;
-  icuTransferRisk: number;
-  cardiacArrestRisk: number;
-  mortalityRisk: number;
+  icuTransferRiskScore: number;
+  cardiacArrestRiskScore: number;
+  mortalityRiskScore: number;
   riskLevel: 'Low' | 'Medium' | 'High';
   explanation: string;
-  featureImportance: Record<string, number>;
+  featureImportance: string; // JSON string
+  predictionMethod: 'ai' | 'model';
+  triggeredByUserId: string;
+  predictedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Patient {
