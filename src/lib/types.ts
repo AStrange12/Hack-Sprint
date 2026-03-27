@@ -1,4 +1,3 @@
-
 export interface UserProfile {
   id: string;
   username: string;
@@ -59,6 +58,7 @@ export interface Patient {
   smokingStatus: string;
   clinicalNotes: string;
   addedByUserId: string;
+  source: 'manual' | 'excel' | 'ocr';
   createdAt: string;
   updatedAt: string;
 }

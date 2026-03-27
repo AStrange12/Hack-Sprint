@@ -1,17 +1,26 @@
-
 "use client";
 
 import Link from 'next/link';
-import { Stethoscope, User, LayoutDashboard, Search, LogOut, UserCircle } from 'lucide-react';
+import { Stethoscope, User, LayoutDashboard, Search, LogOut, UserCircle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { doc } from 'firebase/firestore';
+import { UserProfile } from '@/lib/types';
+import { useMemoFirebase } from '@/firebase';
 
 export function Navigation() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    return user ? doc(db, 'users', user.uid) : null;
+  }, [db, user]);
+
+  const { data: profile } = useDoc<UserProfile>(userDocRef);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -37,6 +46,14 @@ export function Navigation() {
             <>
               {user ? (
                 <div className="flex items-center gap-4">
+                  {profile?.role === 'Admin' && (
+                    <Link href="/admin/dashboard">
+                      <Button variant="ghost" className="flex items-center gap-2 text-accent">
+                        <ShieldCheck size={16} />
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
                   <Link href="/dashboard">
                     <Button variant="ghost" className="flex items-center gap-2">
                       <LayoutDashboard size={16} />
