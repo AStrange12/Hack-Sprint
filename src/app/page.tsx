@@ -4,7 +4,7 @@
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Activity, ShieldAlert, Heart, FileText, Stethoscope, ShieldCheck, Loader2, UserCog } from 'lucide-react';
+import { Activity, ShieldAlert, Heart, FileText, Stethoscope, ShieldCheck, Loader2, UserCog, Search } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { UserProfile } from '@/lib/types';
@@ -60,6 +60,12 @@ export default function LandingPage() {
                           Admin Portal
                         </Button>
                       </Link>
+                      <Link href="/public">
+                        <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-sm bg-white">
+                          <Search className="mr-2" size={20} />
+                          Public Patient Portal
+                        </Button>
+                      </Link>
                     </>
                   ) : (
                     <>
@@ -79,6 +85,7 @@ export default function LandingPage() {
                       )}
                       <Link href="/public">
                         <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl shadow-sm bg-white">
+                          <Search className="mr-2" size={20} />
                           Public Patient Portal
                         </Button>
                       </Link>
