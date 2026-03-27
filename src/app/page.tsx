@@ -1,9 +1,26 @@
+
+"use client";
+
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Activity, ShieldAlert, Heart, FileText, TrendingUp, BarChart3, Stethoscope } from 'lucide-react';
+import { Activity, ShieldAlert, Heart, FileText, Stethoscope, ShieldCheck, Loader2 } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { UserProfile } from '@/lib/types';
 
 export default function LandingPage() {
+  const { user, isUserLoading } = useUser();
+  const db = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    return user ? doc(db, 'users', user.uid) : null;
+  }, [db, user]);
+
+  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const isAdmin = profile?.role === 'Admin';
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
@@ -21,17 +38,36 @@ export default function LandingPage() {
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
               Empower clinical teams with multimodal predictions for ICU transfer, cardiac arrest, and mortality using real-time vitals and clinical notes.
             </p>
+            
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard">
-                <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl">
-                  Go to Doctor Dashboard
+              {isUserLoading || isProfileLoading ? (
+                <Button disabled size="lg" className="h-14 px-8 rounded-xl">
+                  <Loader2 className="animate-spin mr-2" />
+                  Verifying Access...
                 </Button>
-              </Link>
-              <Link href="/public">
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl">
-                  Public Patient Portal
-                </Button>
-              </Link>
+              ) : (
+                <>
+                  {isAdmin ? (
+                    <Link href="/admin/dashboard">
+                      <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl bg-accent hover:bg-accent/90">
+                        <ShieldCheck className="mr-2" />
+                        Go to Admin Dashboard
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href="/dashboard">
+                      <Button size="lg" className="h-14 px-8 text-lg font-semibold rounded-xl">
+                        Go to Doctor Dashboard
+                      </Button>
+                    </Link>
+                  )}
+                  <Link href="/public">
+                    <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold rounded-xl">
+                      Public Patient Portal
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl -z-10" />
