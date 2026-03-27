@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, doc, addDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, FileSpreadsheet, FileText, UserPlus, CheckCircle2, Search, Table as TableIcon } from 'lucide-react';
-import { UserProfile, Patient } from '@/lib/types';
+import { Loader2, Upload, FileSpreadsheet, FileText, UserPlus, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { UserProfile } from '@/lib/types';
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,7 +26,6 @@ export default function AdminDashboard() {
   
   const [activeTab, setActiveTab] = useState('manual');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Manual Entry State
   const [manualPatient, setManualPatient] = useState({
@@ -151,9 +150,6 @@ export default function AdminDashboard() {
       const { data: { text } } = await Tesseract.recognize(file, 'eng');
       setOcrResult(text);
       
-      // Basic Parsing Logic
-      const hrMatch = text.match(/HR[:\s]*(\d+)/i);
-      const sbpMatch = text.match(/BP[:\s]*(\d+)\//i);
       const nameMatch = text.match(/Name[:\s]*([A-Za-z\s]+)/i);
       const ageMatch = text.match(/Age[:\s]*(\d+)/i);
 
@@ -162,7 +158,6 @@ export default function AdminDashboard() {
         setManualPatient(prev => ({ ...prev, firstName: parts[0], lastName: parts.slice(1).join(' ') }));
       }
       if (ageMatch) {
-        // Dob placeholder if age found
         const year = new Date().getFullYear() - parseInt(ageMatch[1]);
         setManualPatient(prev => ({ ...prev, dob: `${year}-01-01` }));
       }
@@ -361,7 +356,7 @@ export default function AdminDashboard() {
                     <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 bg-white rounded-lg border">
-                          <Label className="text-[10px] text-muted-foreground uppercase">Extracted Name</ilage>
+                          <Label className="text-[10px] text-muted-foreground uppercase">Extracted Name</Label>
                           <div className="font-semibold text-primary">{manualPatient.firstName} {manualPatient.lastName || 'TBD'}</div>
                         </div>
                         <div className="p-3 bg-white rounded-lg border">
